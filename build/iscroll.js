@@ -1698,13 +1698,13 @@ function createDefaultScrollbar (direction, interactive, type) {
 
 	if ( direction == 'h' ) {
 		if ( type === true ) {
-			scrollbar.style.cssText += ';height:' + SCROLLBAR_SIZE + 'px;left:2px;right:2px;bottom:0';
+			scrollbar.style.cssText += ';height:' + SCROLLBAR_SIZE + 'px;left:2px;right:2px;bottom:2px';
 			indicator.style.height = '100%';
 		}
 		scrollbar.className = CLASS_PREFIX + '-horizontal-scrollbar';
 	} else {
 		if ( type === true ) {
-			scrollbar.style.cssText += ';width:' + SCROLLBAR_SIZE + 'px;bottom:2px;top:2px;right:1px';
+			scrollbar.style.cssText += ';width:' + SCROLLBAR_SIZE + 'px;bottom:2px;top:2px;right:2px';
 			indicator.style.width = '100%';
 		}
 		scrollbar.className = CLASS_PREFIX + '-vertical-scrollbar';
