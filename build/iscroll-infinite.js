@@ -1017,7 +1017,8 @@ IScroll.prototype = {
 			return;
 		}
 
-		e.preventDefault();
+		// not sure why this is here, but it prevents children of the scroller from scrolling
+		// e.preventDefault();
 
 		var wheelDeltaX, wheelDeltaY,
 			newX, newY,
