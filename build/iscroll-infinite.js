@@ -330,6 +330,8 @@ function IScroll (el, options) {
 		preventDefault: true,
 		preventDefaultException: { tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/ },
 
+		shouldIgnoreWheelEvent: null,
+
 		HWCompositing: true,
 		useTransition: true,
 		useTransform: true,
@@ -998,6 +1000,7 @@ IScroll.prototype = {
 
 		return { x: x, y: y };
 	},
+
 	_initWheel: function () {
 		utils.addEvent(this.wrapper, 'wheel', this);
 		utils.addEvent(this.wrapper, 'mousewheel', this);
@@ -1017,8 +1020,18 @@ IScroll.prototype = {
 			return;
 		}
 
+		var shouldIgnore = false;
+
+		if (this.shouldIgnoreWheelEvent) {
+			shouldIgnore = this.shouldIgnoreWheelEvent(e);
+		}
+
+		if (shouldIgnore) {
+			return;
+		}
+
 		// not sure why this is here, but it prevents children of the scroller from scrolling
-		// e.preventDefault();
+		e.preventDefault();
 
 		var wheelDeltaX, wheelDeltaY,
 			newX, newY,

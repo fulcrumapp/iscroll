@@ -323,6 +323,8 @@ function IScroll (el, options) {
 		preventDefault: true,
 		preventDefaultException: { tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/ },
 
+		shouldIgnoreWheelEvent: null,
+
 		HWCompositing: true,
 		useTransition: true,
 		useTransform: true,
@@ -938,6 +940,7 @@ IScroll.prototype = {
 
 		return { x: x, y: y };
 	},
+
 	_animate: function (destX, destY, duration, easingFn) {
 		var that = this,
 			startX = this.x,
