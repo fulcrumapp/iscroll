@@ -20,8 +20,8 @@
 
 		var shouldIgnore = false;
 
-		if (this.shouldIgnoreWheelEvent) {
-			shouldIgnore = this.shouldIgnoreWheelEvent(e);
+		if (this.options.shouldIgnoreWheelEvent) {
+			shouldIgnore = this.options.shouldIgnoreWheelEvent(e);
 		}
 
 		if (shouldIgnore) {
