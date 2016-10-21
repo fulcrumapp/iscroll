@@ -23,6 +23,8 @@ function IScroll (el, options) {
 		preventDefault: true,
 		preventDefaultException: { tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/ },
 
+		shouldIgnoreWheelEvent: null,
+
 		HWCompositing: true,
 		useTransition: true,
 		useTransform: true,

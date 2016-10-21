@@ -18,8 +18,18 @@
 			return;
 		}
 
+		var shouldIgnore = false;
+
+		if (this.shouldIgnoreWheelEvent) {
+			shouldIgnore = this.shouldIgnoreWheelEvent(e);
+		}
+
+		if (shouldIgnore) {
+			return;
+		}
+
 		// not sure why this is here, but it prevents children of the scroller from scrolling
-		// e.preventDefault();
+		e.preventDefault();
 
 		var wheelDeltaX, wheelDeltaY,
 			newX, newY,
