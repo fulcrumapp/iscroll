@@ -124,7 +124,8 @@ var utils = (function () {
 		transitionTimingFunction: _prefixStyle('transitionTimingFunction'),
 		transitionDuration: _prefixStyle('transitionDuration'),
 		transitionDelay: _prefixStyle('transitionDelay'),
-		transformOrigin: _prefixStyle('transformOrigin')
+		transformOrigin: _prefixStyle('transformOrigin'),
+		touchAction: _prefixStyle('touchAction')
 	});
 
 	me.hasClass = function (e, c) {
@@ -276,6 +277,20 @@ var utils = (function () {
 			ev._constructed = true;
 			target.dispatchEvent(ev);
 		}
+	};
+
+	me.getTouchAction = function(eventPassthrough) {
+		var touchAction = 'none';
+		if ( eventPassthrough === 'vertical' ) {
+			touchAction = 'pan-y';
+		} else if (eventPassthrough === 'horizontal' ) {
+			touchAction = 'pan-x';
+		}
+		if (touchAction != 'none') {
+			// add pinch-zoom support if the browser supports it, but if not (eg. Chrome <55) do nothing
+			touchAction += ' pinch-zoom';
+		}
+		return touchAction;
 	};
 
 	me.getRect = function(el) {
@@ -711,7 +726,7 @@ IScroll.prototype = {
 
 		this.hasHorizontalScroll	= this.options.scrollX && this.maxScrollX < 0;
 		this.hasVerticalScroll		= this.options.scrollY && this.maxScrollY < 0;
-
+		
 		if ( !this.hasHorizontalScroll ) {
 			this.maxScrollX = 0;
 			this.scrollerWidth = this.wrapperWidth;
@@ -725,7 +740,11 @@ IScroll.prototype = {
 		this.endTime = 0;
 		this.directionX = 0;
 		this.directionY = 0;
-
+		
+		if(utils.hasPointer && !this.options.disablePointer) {
+			// The wrapper should have `touchAction` property for using pointerEvent.
+			this.wrapper.style[utils.style.touchAction] = utils.getTouchAction(this.options.eventPassthrough);
+		}
 		this.wrapperOffset = utils.offset(this.wrapper);
 
 		this._execEvent('refresh');
@@ -734,7 +753,7 @@ IScroll.prototype = {
 
 // INSERT POINT: _refresh
 
-	},
+	},	
 
 	on: function (type, fn) {
 		if ( !this._events[type] ) {
