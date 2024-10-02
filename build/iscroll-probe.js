@@ -124,7 +124,8 @@ var utils = (function () {
 		transitionTimingFunction: _prefixStyle('transitionTimingFunction'),
 		transitionDuration: _prefixStyle('transitionDuration'),
 		transitionDelay: _prefixStyle('transitionDelay'),
-		transformOrigin: _prefixStyle('transformOrigin')
+		transformOrigin: _prefixStyle('transformOrigin'),
+		touchAction: _prefixStyle('touchAction')
 	});
 
 	me.hasClass = function (e, c) {
@@ -278,6 +279,39 @@ var utils = (function () {
 		}
 	};
 
+	me.getTouchAction = function(eventPassthrough) {
+		var touchAction = 'none';
+		if ( eventPassthrough === 'vertical' ) {
+			touchAction = 'pan-y';
+		} else if (eventPassthrough === 'horizontal' ) {
+			touchAction = 'pan-x';
+		}
+		if (touchAction != 'none') {
+			// add pinch-zoom support if the browser supports it, but if not (eg. Chrome <55) do nothing
+			touchAction += ' pinch-zoom';
+		}
+		return touchAction;
+	};
+
+	me.getRect = function(el) {
+		if (el instanceof SVGElement) {
+			var rect = el.getBoundingClientRect();
+			return {
+				top : rect.top,
+				left : rect.left,
+				width : rect.width,
+				height : rect.height
+			};
+		} else {
+			return {
+				top : el.offsetTop,
+				left : el.offsetLeft,
+				width : el.offsetWidth,
+				height : el.offsetHeight
+			};
+		}
+	};
+
 	return me;
 })();
 function IScroll (el, options) {
@@ -309,6 +343,8 @@ function IScroll (el, options) {
 
 		preventDefault: true,
 		preventDefaultException: { tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/ },
+
+		shouldIgnoreWheelEvent: null,
 
 		HWCompositing: true,
 		useTransition: true,
@@ -726,15 +762,16 @@ IScroll.prototype = {
 	},
 
 	refresh: function () {
-		var rf = this.wrapper.offsetHeight;		// Force reflow
+		utils.getRect(this.wrapper);		// Force reflow
 
 		this.wrapperWidth	= this.wrapper.clientWidth;
 		this.wrapperHeight	= this.wrapper.clientHeight;
 
+		var rect = utils.getRect(this.scroller);
 /* REPLACE START: refresh */
 
-		this.scrollerWidth	= this.scroller.offsetWidth;
-		this.scrollerHeight	= this.scroller.offsetHeight;
+		this.scrollerWidth	= rect.width;
+		this.scrollerHeight	= rect.height;
 
 		this.maxScrollX		= this.wrapperWidth - this.scrollerWidth;
 		this.maxScrollY		= this.wrapperHeight - this.scrollerHeight;
@@ -743,7 +780,7 @@ IScroll.prototype = {
 
 		this.hasHorizontalScroll	= this.options.scrollX && this.maxScrollX < 0;
 		this.hasVerticalScroll		= this.options.scrollY && this.maxScrollY < 0;
-
+		
 		if ( !this.hasHorizontalScroll ) {
 			this.maxScrollX = 0;
 			this.scrollerWidth = this.wrapperWidth;
@@ -757,7 +794,11 @@ IScroll.prototype = {
 		this.endTime = 0;
 		this.directionX = 0;
 		this.directionY = 0;
-
+		
+		if(utils.hasPointer && !this.options.disablePointer) {
+			// The wrapper should have `touchAction` property for using pointerEvent.
+			this.wrapper.style[utils.style.touchAction] = utils.getTouchAction(this.options.eventPassthrough);
+		}
 		this.wrapperOffset = utils.offset(this.wrapper);
 
 		this._execEvent('refresh');
@@ -766,7 +807,7 @@ IScroll.prototype = {
 
 // INSERT POINT: _refresh
 
-	},
+	},	
 
 	on: function (type, fn) {
 		if ( !this._events[type] ) {
@@ -842,11 +883,13 @@ IScroll.prototype = {
 		pos.top  -= this.wrapperOffset.top;
 
 		// if offsetX/Y are true we center the element to the screen
+		var elRect = utils.getRect(el);
+		var wrapperRect = utils.getRect(this.wrapper);
 		if ( offsetX === true ) {
-			offsetX = Math.round(el.offsetWidth / 2 - this.wrapper.offsetWidth / 2);
+			offsetX = Math.round(elRect.width / 2 - wrapperRect.width / 2);
 		}
 		if ( offsetY === true ) {
-			offsetY = Math.round(el.offsetHeight / 2 - this.wrapper.offsetHeight / 2);
+			offsetY = Math.round(elRect.height / 2 - wrapperRect.height / 2);
 		}
 
 		pos.left -= offsetX || 0;
@@ -994,6 +1037,7 @@ IScroll.prototype = {
 
 		return { x: x, y: y };
 	},
+
 	_initIndicators: function () {
 		var interactive = this.options.interactiveScrollbars,
 			customStyle = typeof this.options.scrollbars != 'string',
@@ -1119,6 +1163,17 @@ IScroll.prototype = {
 			return;
 		}
 
+		var shouldIgnore = false;
+
+		if (this.options.shouldIgnoreWheelEvent) {
+			shouldIgnore = this.options.shouldIgnoreWheelEvent(e);
+		}
+
+		if (shouldIgnore) {
+			return;
+		}
+
+		// not sure why this is here, but it prevents children of the scroller from scrolling
 		e.preventDefault();
 
 		var wheelDeltaX, wheelDeltaY,
@@ -1160,10 +1215,10 @@ IScroll.prototype = {
 		wheelDeltaX *= this.options.invertWheelDirection;
 		wheelDeltaY *= this.options.invertWheelDirection;
 
-		if ( !this.hasVerticalScroll ) {
-			wheelDeltaX = wheelDeltaY;
-			wheelDeltaY = 0;
-		}
+		// if ( !this.hasVerticalScroll ) {
+		// 	wheelDeltaX = wheelDeltaY;
+		// 	wheelDeltaY = 0;
+		// }
 
 		if ( this.options.snap ) {
 			newX = this.currentPage.pageX;
@@ -1227,7 +1282,8 @@ IScroll.prototype = {
 				x = 0, y,
 				stepX = this.options.snapStepX || this.wrapperWidth,
 				stepY = this.options.snapStepY || this.wrapperHeight,
-				el;
+				el,
+				rect;
 
 			this.pages = [];
 
@@ -1267,7 +1323,8 @@ IScroll.prototype = {
 				n = -1;
 
 				for ( ; i < l; i++ ) {
-					if ( i === 0 || el[i].offsetLeft <= el[i-1].offsetLeft ) {
+					rect = utils.getRect(el[i]);
+					if ( i === 0 || rect.left <= utils.getRect(el[i-1]).left ) {
 						m = 0;
 						n++;
 					}
@@ -1276,16 +1333,16 @@ IScroll.prototype = {
 						this.pages[m] = [];
 					}
 
-					x = Math.max(-el[i].offsetLeft, this.maxScrollX);
-					y = Math.max(-el[i].offsetTop, this.maxScrollY);
-					cx = x - Math.round(el[i].offsetWidth / 2);
-					cy = y - Math.round(el[i].offsetHeight / 2);
+					x = Math.max(-rect.left, this.maxScrollX);
+					y = Math.max(-rect.top, this.maxScrollY);
+					cx = x - Math.round(rect.width / 2);
+					cy = y - Math.round(rect.height / 2);
 
 					this.pages[m][n] = {
 						x: x,
 						y: y,
-						width: el[i].offsetWidth,
-						height: el[i].offsetHeight,
+						width: rect.width,
+						height: rect.height,
 						cx: cx,
 						cy: cy
 					};
@@ -1675,30 +1732,33 @@ IScroll.prototype = {
 				break;
 		}
 	}
-};
+};var CLASS_PREFIX = 'scroll-indicator';
+var MIN_SCROLLBAR_SIZE = 20;
+var SCROLLBAR_SIZE = 10;
+
 function createDefaultScrollbar (direction, interactive, type) {
 	var scrollbar = document.createElement('div'),
 		indicator = document.createElement('div');
 
 	if ( type === true ) {
 		scrollbar.style.cssText = 'position:absolute;z-index:9999';
-		indicator.style.cssText = '-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;position:absolute;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.9);border-radius:3px';
+		indicator.style.cssText = '-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;position:absolute;background:rgba(0,0,0,0.4);border-radius:7px';
 	}
 
-	indicator.className = 'iScrollIndicator';
+	indicator.className = CLASS_PREFIX;
 
 	if ( direction == 'h' ) {
 		if ( type === true ) {
-			scrollbar.style.cssText += ';height:7px;left:2px;right:2px;bottom:0';
+			scrollbar.style.cssText += ';height:' + SCROLLBAR_SIZE + 'px;left:2px;right:2px;bottom:2px';
 			indicator.style.height = '100%';
 		}
-		scrollbar.className = 'iScrollHorizontalScrollbar';
+		scrollbar.className = CLASS_PREFIX + '-horizontal-scrollbar';
 	} else {
 		if ( type === true ) {
-			scrollbar.style.cssText += ';width:7px;bottom:2px;top:2px;right:1px';
+			scrollbar.style.cssText += ';width:' + SCROLLBAR_SIZE + 'px;bottom:2px;top:2px;right:2px';
 			indicator.style.width = '100%';
 		}
-		scrollbar.className = 'iScrollVerticalScrollbar';
+		scrollbar.className = CLASS_PREFIX + '-vertical-scrollbar';
 	}
 
 	scrollbar.style.cssText += ';overflow:hidden';
@@ -1822,7 +1882,7 @@ Indicator.prototype = {
 			utils.removeEvent(window, 'mouseup', this);
 		}
 
-		if ( this.options.defaultScrollbars ) {
+		if ( this.options.defaultScrollbars && this.wrapper.parentNode ) {
 			this.wrapper.parentNode.removeChild(this.wrapper);
 		}
 	},
@@ -1966,19 +2026,19 @@ Indicator.prototype = {
 		}
 
 		if ( this.scroller.hasHorizontalScroll && this.scroller.hasVerticalScroll ) {
-			utils.addClass(this.wrapper, 'iScrollBothScrollbars');
-			utils.removeClass(this.wrapper, 'iScrollLoneScrollbar');
+			utils.addClass(this.wrapper, CLASS_PREFIX + '-both-scrollbars');
+			utils.removeClass(this.wrapper, CLASS_PREFIX + '-lone-scrollbar');
 
 			if ( this.options.defaultScrollbars && this.options.customStyle ) {
 				if ( this.options.listenX ) {
-					this.wrapper.style.right = '8px';
+					this.wrapper.style.right = '12px';
 				} else {
-					this.wrapper.style.bottom = '8px';
+					this.wrapper.style.bottom = '12px';
 				}
 			}
 		} else {
-			utils.removeClass(this.wrapper, 'iScrollBothScrollbars');
-			utils.addClass(this.wrapper, 'iScrollLoneScrollbar');
+			utils.removeClass(this.wrapper, CLASS_PREFIX + '-both-scrollbars');
+			utils.addClass(this.wrapper, CLASS_PREFIX + '-lone-scrollbar');
 
 			if ( this.options.defaultScrollbars && this.options.customStyle ) {
 				if ( this.options.listenX ) {
@@ -1989,12 +2049,12 @@ Indicator.prototype = {
 			}
 		}
 
-		var r = this.wrapper.offsetHeight;	// force refresh
+		utils.getRect(this.wrapper);	// force refresh
 
 		if ( this.options.listenX ) {
 			this.wrapperWidth = this.wrapper.clientWidth;
 			if ( this.options.resize ) {
-				this.indicatorWidth = Math.max(Math.round(this.wrapperWidth * this.wrapperWidth / (this.scroller.scrollerWidth || this.wrapperWidth || 1)), 8);
+				this.indicatorWidth = Math.max(Math.round(this.wrapperWidth * this.wrapperWidth / (this.scroller.scrollerWidth || this.wrapperWidth || 1)), MIN_SCROLLBAR_SIZE);
 				this.indicatorStyle.width = this.indicatorWidth + 'px';
 			} else {
 				this.indicatorWidth = this.indicator.clientWidth;
@@ -2003,8 +2063,8 @@ Indicator.prototype = {
 			this.maxPosX = this.wrapperWidth - this.indicatorWidth;
 
 			if ( this.options.shrink == 'clip' ) {
-				this.minBoundaryX = -this.indicatorWidth + 8;
-				this.maxBoundaryX = this.wrapperWidth - 8;
+				this.minBoundaryX = -this.indicatorWidth + MIN_SCROLLBAR_SIZE;
+				this.maxBoundaryX = this.wrapperWidth - MIN_SCROLLBAR_SIZE;
 			} else {
 				this.minBoundaryX = 0;
 				this.maxBoundaryX = this.maxPosX;
@@ -2016,7 +2076,7 @@ Indicator.prototype = {
 		if ( this.options.listenY ) {
 			this.wrapperHeight = this.wrapper.clientHeight;
 			if ( this.options.resize ) {
-				this.indicatorHeight = Math.max(Math.round(this.wrapperHeight * this.wrapperHeight / (this.scroller.scrollerHeight || this.wrapperHeight || 1)), 8);
+				this.indicatorHeight = Math.max(Math.round(this.wrapperHeight * this.wrapperHeight / (this.scroller.scrollerHeight || this.wrapperHeight || 1)), MIN_SCROLLBAR_SIZE);
 				this.indicatorStyle.height = this.indicatorHeight + 'px';
 			} else {
 				this.indicatorHeight = this.indicator.clientHeight;
@@ -2025,8 +2085,8 @@ Indicator.prototype = {
 			this.maxPosY = this.wrapperHeight - this.indicatorHeight;
 
 			if ( this.options.shrink == 'clip' ) {
-				this.minBoundaryY = -this.indicatorHeight + 8;
-				this.maxBoundaryY = this.wrapperHeight - 8;
+				this.minBoundaryY = -this.indicatorHeight + MIN_SCROLLBAR_SIZE;
+				this.maxBoundaryY = this.wrapperHeight - MIN_SCROLLBAR_SIZE;
 			} else {
 				this.minBoundaryY = 0;
 				this.maxBoundaryY = this.maxPosY;
@@ -2046,13 +2106,13 @@ Indicator.prototype = {
 		if ( !this.options.ignoreBoundaries ) {
 			if ( x < this.minBoundaryX ) {
 				if ( this.options.shrink == 'scale' ) {
-					this.width = Math.max(this.indicatorWidth + x, 8);
+					this.width = Math.max(this.indicatorWidth + x, MIN_SCROLLBAR_SIZE);
 					this.indicatorStyle.width = this.width + 'px';
 				}
 				x = this.minBoundaryX;
 			} else if ( x > this.maxBoundaryX ) {
 				if ( this.options.shrink == 'scale' ) {
-					this.width = Math.max(this.indicatorWidth - (x - this.maxPosX), 8);
+					this.width = Math.max(this.indicatorWidth - (x - this.maxPosX), MIN_SCROLLBAR_SIZE);
 					this.indicatorStyle.width = this.width + 'px';
 					x = this.maxPosX + this.indicatorWidth - this.width;
 				} else {
@@ -2065,13 +2125,13 @@ Indicator.prototype = {
 
 			if ( y < this.minBoundaryY ) {
 				if ( this.options.shrink == 'scale' ) {
-					this.height = Math.max(this.indicatorHeight + y * 3, 8);
+					this.height = Math.max(this.indicatorHeight + y * 3, MIN_SCROLLBAR_SIZE);
 					this.indicatorStyle.height = this.height + 'px';
 				}
 				y = this.minBoundaryY;
 			} else if ( y > this.maxBoundaryY ) {
 				if ( this.options.shrink == 'scale' ) {
-					this.height = Math.max(this.indicatorHeight - (y - this.maxPosY) * 3, 8);
+					this.height = Math.max(this.indicatorHeight - (y - this.maxPosY) * 3, MIN_SCROLLBAR_SIZE);
 					this.indicatorStyle.height = this.height + 'px';
 					y = this.maxPosY + this.indicatorHeight - this.height;
 				} else {

@@ -1,3 +1,6 @@
+var CLASS_PREFIX = 'scroll-indicator';
+var MIN_SCROLLBAR_SIZE = 20;
+var SCROLLBAR_SIZE = 10;
 
 function createDefaultScrollbar (direction, interactive, type) {
 	var scrollbar = document.createElement('div'),
@@ -5,23 +8,23 @@ function createDefaultScrollbar (direction, interactive, type) {
 
 	if ( type === true ) {
 		scrollbar.style.cssText = 'position:absolute;z-index:9999';
-		indicator.style.cssText = '-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;position:absolute;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.9);border-radius:3px';
+		indicator.style.cssText = '-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;position:absolute;background:rgba(0,0,0,0.4);border-radius:7px';
 	}
 
-	indicator.className = 'iScrollIndicator';
+	indicator.className = CLASS_PREFIX;
 
 	if ( direction == 'h' ) {
 		if ( type === true ) {
-			scrollbar.style.cssText += ';height:7px;left:2px;right:2px;bottom:0';
+			scrollbar.style.cssText += ';height:' + SCROLLBAR_SIZE + 'px;left:2px;right:2px;bottom:2px';
 			indicator.style.height = '100%';
 		}
-		scrollbar.className = 'iScrollHorizontalScrollbar';
+		scrollbar.className = CLASS_PREFIX + '-horizontal-scrollbar';
 	} else {
 		if ( type === true ) {
-			scrollbar.style.cssText += ';width:7px;bottom:2px;top:2px;right:1px';
+			scrollbar.style.cssText += ';width:' + SCROLLBAR_SIZE + 'px;bottom:2px;top:2px;right:2px';
 			indicator.style.width = '100%';
 		}
-		scrollbar.className = 'iScrollVerticalScrollbar';
+		scrollbar.className = CLASS_PREFIX + '-vertical-scrollbar';
 	}
 
 	scrollbar.style.cssText += ';overflow:hidden';
@@ -145,7 +148,7 @@ Indicator.prototype = {
 			utils.removeEvent(window, 'mouseup', this);
 		}
 
-		if ( this.options.defaultScrollbars ) {
+		if ( this.options.defaultScrollbars && this.wrapper.parentNode ) {
 			this.wrapper.parentNode.removeChild(this.wrapper);
 		}
 	},
@@ -280,19 +283,19 @@ Indicator.prototype = {
 		}
 
 		if ( this.scroller.hasHorizontalScroll && this.scroller.hasVerticalScroll ) {
-			utils.addClass(this.wrapper, 'iScrollBothScrollbars');
-			utils.removeClass(this.wrapper, 'iScrollLoneScrollbar');
+			utils.addClass(this.wrapper, CLASS_PREFIX + '-both-scrollbars');
+			utils.removeClass(this.wrapper, CLASS_PREFIX + '-lone-scrollbar');
 
 			if ( this.options.defaultScrollbars && this.options.customStyle ) {
 				if ( this.options.listenX ) {
-					this.wrapper.style.right = '8px';
+					this.wrapper.style.right = '12px';
 				} else {
-					this.wrapper.style.bottom = '8px';
+					this.wrapper.style.bottom = '12px';
 				}
 			}
 		} else {
-			utils.removeClass(this.wrapper, 'iScrollBothScrollbars');
-			utils.addClass(this.wrapper, 'iScrollLoneScrollbar');
+			utils.removeClass(this.wrapper, CLASS_PREFIX + '-both-scrollbars');
+			utils.addClass(this.wrapper, CLASS_PREFIX + '-lone-scrollbar');
 
 			if ( this.options.defaultScrollbars && this.options.customStyle ) {
 				if ( this.options.listenX ) {
@@ -308,7 +311,7 @@ Indicator.prototype = {
 		if ( this.options.listenX ) {
 			this.wrapperWidth = this.wrapper.clientWidth;
 			if ( this.options.resize ) {
-				this.indicatorWidth = Math.max(Math.round(this.wrapperWidth * this.wrapperWidth / (this.scroller.scrollerWidth || this.wrapperWidth || 1)), 8);
+				this.indicatorWidth = Math.max(Math.round(this.wrapperWidth * this.wrapperWidth / (this.scroller.scrollerWidth || this.wrapperWidth || 1)), MIN_SCROLLBAR_SIZE);
 				this.indicatorStyle.width = this.indicatorWidth + 'px';
 			} else {
 				this.indicatorWidth = this.indicator.clientWidth;
@@ -317,8 +320,8 @@ Indicator.prototype = {
 			this.maxPosX = this.wrapperWidth - this.indicatorWidth;
 
 			if ( this.options.shrink == 'clip' ) {
-				this.minBoundaryX = -this.indicatorWidth + 8;
-				this.maxBoundaryX = this.wrapperWidth - 8;
+				this.minBoundaryX = -this.indicatorWidth + MIN_SCROLLBAR_SIZE;
+				this.maxBoundaryX = this.wrapperWidth - MIN_SCROLLBAR_SIZE;
 			} else {
 				this.minBoundaryX = 0;
 				this.maxBoundaryX = this.maxPosX;
@@ -330,7 +333,7 @@ Indicator.prototype = {
 		if ( this.options.listenY ) {
 			this.wrapperHeight = this.wrapper.clientHeight;
 			if ( this.options.resize ) {
-				this.indicatorHeight = Math.max(Math.round(this.wrapperHeight * this.wrapperHeight / (this.scroller.scrollerHeight || this.wrapperHeight || 1)), 8);
+				this.indicatorHeight = Math.max(Math.round(this.wrapperHeight * this.wrapperHeight / (this.scroller.scrollerHeight || this.wrapperHeight || 1)), MIN_SCROLLBAR_SIZE);
 				this.indicatorStyle.height = this.indicatorHeight + 'px';
 			} else {
 				this.indicatorHeight = this.indicator.clientHeight;
@@ -339,8 +342,8 @@ Indicator.prototype = {
 			this.maxPosY = this.wrapperHeight - this.indicatorHeight;
 
 			if ( this.options.shrink == 'clip' ) {
-				this.minBoundaryY = -this.indicatorHeight + 8;
-				this.maxBoundaryY = this.wrapperHeight - 8;
+				this.minBoundaryY = -this.indicatorHeight + MIN_SCROLLBAR_SIZE;
+				this.maxBoundaryY = this.wrapperHeight - MIN_SCROLLBAR_SIZE;
 			} else {
 				this.minBoundaryY = 0;
 				this.maxBoundaryY = this.maxPosY;
@@ -360,13 +363,13 @@ Indicator.prototype = {
 		if ( !this.options.ignoreBoundaries ) {
 			if ( x < this.minBoundaryX ) {
 				if ( this.options.shrink == 'scale' ) {
-					this.width = Math.max(this.indicatorWidth + x, 8);
+					this.width = Math.max(this.indicatorWidth + x, MIN_SCROLLBAR_SIZE);
 					this.indicatorStyle.width = this.width + 'px';
 				}
 				x = this.minBoundaryX;
 			} else if ( x > this.maxBoundaryX ) {
 				if ( this.options.shrink == 'scale' ) {
-					this.width = Math.max(this.indicatorWidth - (x - this.maxPosX), 8);
+					this.width = Math.max(this.indicatorWidth - (x - this.maxPosX), MIN_SCROLLBAR_SIZE);
 					this.indicatorStyle.width = this.width + 'px';
 					x = this.maxPosX + this.indicatorWidth - this.width;
 				} else {
@@ -379,13 +382,13 @@ Indicator.prototype = {
 
 			if ( y < this.minBoundaryY ) {
 				if ( this.options.shrink == 'scale' ) {
-					this.height = Math.max(this.indicatorHeight + y * 3, 8);
+					this.height = Math.max(this.indicatorHeight + y * 3, MIN_SCROLLBAR_SIZE);
 					this.indicatorStyle.height = this.height + 'px';
 				}
 				y = this.minBoundaryY;
 			} else if ( y > this.maxBoundaryY ) {
 				if ( this.options.shrink == 'scale' ) {
-					this.height = Math.max(this.indicatorHeight - (y - this.maxPosY) * 3, 8);
+					this.height = Math.max(this.indicatorHeight - (y - this.maxPosY) * 3, MIN_SCROLLBAR_SIZE);
 					this.indicatorStyle.height = this.height + 'px';
 					y = this.maxPosY + this.indicatorHeight - this.height;
 				} else {

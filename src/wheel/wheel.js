@@ -18,6 +18,17 @@
 			return;
 		}
 
+		var shouldIgnore = false;
+
+		if (this.options.shouldIgnoreWheelEvent) {
+			shouldIgnore = this.options.shouldIgnoreWheelEvent(e);
+		}
+
+		if (shouldIgnore) {
+			return;
+		}
+
+		// not sure why this is here, but it prevents children of the scroller from scrolling
 		e.preventDefault();
 
 		var wheelDeltaX, wheelDeltaY,
@@ -59,10 +70,10 @@
 		wheelDeltaX *= this.options.invertWheelDirection;
 		wheelDeltaY *= this.options.invertWheelDirection;
 
-		if ( !this.hasVerticalScroll ) {
-			wheelDeltaX = wheelDeltaY;
-			wheelDeltaY = 0;
-		}
+		// if ( !this.hasVerticalScroll ) {
+		// 	wheelDeltaX = wheelDeltaY;
+		// 	wheelDeltaY = 0;
+		// }
 
 		if ( this.options.snap ) {
 			newX = this.currentPage.pageX;
