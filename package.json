@@ -1,9 +1,13 @@
 {
-  "name": "iscroll",
+  "name": "@fulcrumapp/iscroll",
   "description": "Smooth scrolling for the web",
-  "version": "5.2.0",
-  "homepage": "http://iscrolljs.com",
-  "author": "Matteo Spinelli <matteo@cubiq.org> (http://cubiq.org)",
+  "version": "0.0.1",
+  "author": "",
+  "license": "ISC",
+  "repository": "https://github.com/fulcrumapp/iscroll",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "keywords": [
     "scrolling",
     "carousel",
@@ -17,13 +21,5 @@
   "devDependencies": {
     "jshint": "~2.9.1",
     "uglify-js": "~2.6.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cubiq/iscroll.git"
-  },
-  "bugs": {
-    "url": "https://github.com/cubiq/iscroll/issues"
-  },
-  "license": "MIT"
+  }
 }
